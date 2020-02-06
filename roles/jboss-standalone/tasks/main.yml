@@ -95,6 +95,7 @@
 
 - name: Copy task
   copy: src={{ item.src }} dest={{ item.dest }}
+  remote_src: yes
   with_items:
     - { src: '/opt/wildfly/docs/contrib/scripts/systemd/launch.sh', dest: '/opt/wildfly/bin/' }
     - { src: '/opt/wildfly/docs/contrib/scripts/systemd/wildfly.conf', dest: '/etc/wildfly/' }
@@ -146,6 +147,7 @@
     dest: /etc/sysconfig/iptables
   when: ansible_distribution_major_version != "7"
   notify: restart iptables
+  remote_src: yes
 
 - name: Ensure that firewalld is installed
   yum:
