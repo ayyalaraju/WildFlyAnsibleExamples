@@ -1,4 +1,4 @@
 - name: Plain Deployment
   hosts: "{{ l_scale_up_hosts | default('nodes') }}"
-  roles:
-  - role: jboss-standalone
+  roles: jboss-standalone
+  
