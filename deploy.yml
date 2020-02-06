@@ -1,5 +1,7 @@
 - name: Plain Deployment
   hosts: all
-  roles: 
-     - jboss-standalone
+  tasks:
+    - name: 'Run roles'
+      block:
+        - import_role: jboss-standalone
   
