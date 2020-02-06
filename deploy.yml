@@ -1,5 +1,5 @@
-- name: Plain Deployment
-  hosts: all
+---
+- hosts: all
   roles:
-  - jboss-standalone
+    - jboss-standalone
   
