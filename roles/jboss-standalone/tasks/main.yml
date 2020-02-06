@@ -43,6 +43,7 @@
   unarchive:
     dest: /opt
     src: /opt/wildfly-16.0.0.Final.tar.gz
+    remote_src: yes
 
 - name: Symbolic Link and chown
   command: "{{item}}"
