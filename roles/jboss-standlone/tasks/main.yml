@@ -1,0 +1,170 @@
+- name: Install Java 1.8 and some basic dependencies
+  yum:
+    name: "{{ item }}"
+    #name: ['unzip', 'java-1.8.0-openjdk', 'libselinux-python', 'libsemanage-python']
+    state: present
+  with_items:
+   - unzip
+   - java-1.8.0-openjdk-devel
+   - libselinux-python
+   - libsemanage-python
+
+- name: Add group wildfly
+  group:
+    name: wildfly
+  ignore_errors: yes
+
+#- name: Add user wildfly
+#  user:
+#    name: wildfly
+#    group: wildfly
+#    state: present
+#    createhome: yes
+#    home: /opt/wildfly
+#    shell: /sbin/nologin
+#  ignore_errors: yes
+
+- name: Add group wildfly CLI
+  command: "{{item}}"
+  become: yes
+  become_method: su
+  with_items:
+   #- groupadd -r wildfly
+   - useradd -r -g wildfly -d /opt/wildfly -s /sbin/nologin wildfly
+  ignore_errors: yes
+
+- name: Download JBoss from jboss.org
+  get_url:
+    #url: http://download.jboss.org/jbossas/7.1/jboss-as-7.1.1.Final/jboss-as-7.1.1.Final.zip
+    url: https://download.jboss.org/wildfly/16.0.0.Final/wildfly-16.0.0.Final.tar.gz
+    dest: /opt/wildfly-16.0.0.Final.tar.gz
+
+- name: Extract archive
+  unarchive:
+    dest: /opt
+    src: /opt/wildfly-16.0.0.Final.tar.gz
+
+- name: Symbolic Link and chown
+  command: "{{item}}"
+  become: yes
+  become_method: su
+  with_items:
+   - sudo ln -s /opt/wildfly-16.0.0.Final /opt/wildfly
+   #- sudo chown -RH wildfly: /opt/wildfly
+  ignore_errors: yes
+
+#- name: Add user wildfly
+#  user:
+#    name: wildfly
+#    group: wildfly
+#    state: present
+#    createhome: yes
+#    home: /opt/wildfly
+#    shell: /sbin/nologin
+#  ignore_errors: yes
+
+- name: Change ownership of wildfly installation
+  file:
+    path: /opt/wildfly
+    owner: wildfly
+    group: wildfly
+    state: directory
+    recurse: yes
+  ignore_errors: yes
+
+#- name: Create a symbolic link
+#  file:
+#    src: /opt/wildfly-16.0.0.Final
+#    dest: /opt/wildfly
+#    owner: wildfly
+#    group: wildfly
+#    state: link
+#    force: yes
+#  ignore_errors: yes
+
+
+- name: Create a directory
+  file:
+    dest: /etc/wildfly
+    mode: 0755
+    owner: wildfly
+    group: wildfly
+    state: directory
+  ignore_errors: yes
+
+- name: Copy task
+  copy: src={{ item.src }} dest={{ item.dest }}
+  with_items:
+    - { src: '/opt/wildfly/docs/contrib/scripts/systemd/launch.sh', dest: '/opt/wildfly/bin/' }
+    - { src: '/opt/wildfly/docs/contrib/scripts/systemd/wildfly.conf', dest: '/etc/wildfly/' }
+    - { src: '/opt/wildfly/docs/contrib/scripts/systemd/wildfly.service', dest: '/etc/systemd/system/' }
+
+- name: Chmod .sh
+  shell: chmod +x /opt/wildfly/bin/*.sh
+
+
+#- name: Execute Commands
+#  command: "{{item}}"
+#  become: yes
+#  become_method: su
+#  with_items:
+   #- cp /opt/wildfly/docs/contrib/scripts/systemd/launch.sh /opt/wildfly/bin/ 
+   #- cp /opt/wildfly/docs/contrib/scripts/systemd/wildfly.conf /etc/wildfly/
+   #- sh -c 'chmod +x /opt/wildfly/bin/*.sh'
+   #- cp /opt/wildfly/docs/contrib/scripts/systemd/wildfly.service /etc/systemd/system/
+   #- systemctl daemon-reload
+   #- systemctl start wildfly
+   #- systemctl enable wildfly
+
+
+- name: Make sure a service is running
+  systemd: 
+    state: started 
+    name: wildfly
+    enabled: yes 
+    daemon_reload: yes
+
+#- name: Copy the init script
+#  copy:
+#    src: jboss-as-standalone.sh
+#    dest: /etc/init.d/wildfly
+#    mode: 0755
+
+#- name: Workaround for systemd bug
+#  shell: service wildfly start && chkconfig wildfly on
+
+#- name: Enable JBoss to be started at boot
+#  service:
+#    name: wildfly
+#    enabled: yes
+#    state: started
+
+- name: deploy iptables rules
+  template:
+    src: iptables-save
+    dest: /etc/sysconfig/iptables
+  when: ansible_distribution_major_version != "7"
+  notify: restart iptables
+
+- name: Ensure that firewalld is installed
+  yum:
+    name: firewalld
+    state: present
+  when: ansible_distribution_major_version == "7"
+
+- name: Ensure that firewalld is started
+  service:
+    name: firewalld
+    state: started
+  when: ansible_distribution_major_version == "7"
+
+- name: deploy firewalld rules
+  firewalld:
+    immediate: yes
+    port: "{{ item }}"
+    state: enabled
+    permanent: yes
+  when: ansible_distribution_major_version == "7"
+  with_items:
+  - "{{ http_port }}/tcp"
+  - "{{ https_port }}/tcp"
