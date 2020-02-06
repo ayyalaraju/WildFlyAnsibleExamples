@@ -2,6 +2,5 @@
   hosts: all
   tasks:
     - name: 'Run roles'
-      block:
-        - import_role: jboss-standalone
+      jboss-standalone
   
