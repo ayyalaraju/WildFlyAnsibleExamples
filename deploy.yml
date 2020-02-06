@@ -1,6 +1,5 @@
 - name: Plain Deployment
   hosts: all
-  tasks:
-    - name: 'Run roles'
-      jboss-standalone
+  roles:
+    - jboss-standalone
   
