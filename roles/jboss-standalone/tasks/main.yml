@@ -51,7 +51,7 @@
   become_method: su
   with_items:
    - sudo ln -s /opt/wildfly-16.0.0.Final /opt/wildfly
-   #- sudo chown -RH wildfly: /opt/wildfly
+   - sudo chown -RH wildfly: /opt/wildfly
   ignore_errors: yes
 
 #- name: Add user wildfly
